@@ -1,0 +1,7 @@
+mysql-connector-python>=8.0
+python-dotenv>=1.0
+bcrypt>=4.0
+
+# Tambahkan library GUI sesuai pilihan, contoh:
+# customtkinter>=5.2
+# PyQt6>=6.5
