@@ -4,7 +4,7 @@ Sistem Informasi Akademik perguruan tinggi berbasis Python dan MySQL, dengan aks
 
 ## Fitur
 
-<<<<<<< HEAD
+
 ```
 1. Login & manajemen user
 2. Dashboard
