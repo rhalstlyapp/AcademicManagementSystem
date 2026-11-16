@@ -4,6 +4,7 @@ Sistem Informasi Akademik perguruan tinggi berbasis Python dan MySQL, dengan aks
 
 ## Fitur
 
+<<<<<<< HEAD
 ```
 1. Login & manajemen user
 2. Dashboard
@@ -16,6 +17,18 @@ Sistem Informasi Akademik perguruan tinggi berbasis Python dan MySQL, dengan aks
 9. Validasi data
 10. Logout & log aktivitas
 ```
+=======
+1 Login & manajemen user
+2 Dashboard
+3 Manajemen mahasiswa
+4 Manajemen mata kuliah
+5 Manajemen nilai
+6 Perhitungan IPS/IPK
+7 Transkrip nilai
+8 Search & filter
+9 Validasi data
+10 Logout & log aktivitas
+>>>>>>> c5b428d795557eb662c8cf03c0d7f4b18e4d585e
 
 ## Struktur Proyek
 
