@@ -4,16 +4,18 @@ Sistem Informasi Akademik perguruan tinggi berbasis Python dan MySQL, dengan aks
 
 ## Fitur
 
-- **Login & manajemen akun**: role-based access, akun aktif/nonaktif, pencatatan sesi dan aktivitas
-- **Dashboard**: ringkasan statistik akademik
-- **Data master**: fakultas, program studi, semester akademik, ruang, kurikulum
-- **Mahasiswa & Dosen**: biodata, program studi/homebase, Dosen Wali (PA)
-- **Mata kuliah**: kode, SKS, semester, prasyarat
-- **Perkuliahan**: kelas, dosen pengampu, jadwal, ruang
-- **KRS**: pengisian per semester dan persetujuan Dosen PA
-- **Nilai**: komponen (tugas, UTS, UAS), nilai akhir, huruf mutu
-- **IPS/IPK & Transkrip**: dihitung dari bobot SKS dan nilai mutu
-- **Validasi**: batas SKS berdasarkan IPS, jadwal bentrok, prasyarat, kuota kelas
+```
+1. Login & manajemen user
+2. Dashboard
+3. Manajemen mahasiswa
+4. Manajemen mata kuliah
+5. Manajemen nilai
+6. Perhitungan IPS/IPK
+7. Transkrip nilai
+8. Search & filter
+9. Validasi data
+10. Logout & log aktivitas
+```
 
 ## Struktur Proyek
 
