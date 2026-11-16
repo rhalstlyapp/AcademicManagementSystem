@@ -1,34 +1,39 @@
-# Academic Management System (SIAKAD)
+# Academic Management System (SIAKAD): Nilai & IPK
 
-Sistem Informasi Akademik perguruan tinggi berbasis Python dan MySQL, dengan akses berbasis peran (Admin, Dosen, Mahasiswa).
+Aplikasi berbasis Python dan MySQL untuk mengelola nilai mahasiswa dan menghitung IPS/IPK. Dibuat sebagai proyek UAS mata kuliah Basis Data.
 
 ## Fitur
 
+- Manajemen data mahasiswa, program studi, mata kuliah, dan semester
+- Input nilai (tugas, UTS, UAS) dengan nilai akhir yang dihitung otomatis oleh database
+- Konversi nilai angka ke huruf mutu melalui skala nilai yang dapat diubah
+- Perhitungan **IPS** per semester dan **IPK** menggunakan VIEW
+- Transkrip nilai mahasiswa
+- Pencarian dan filter data
+- Validasi data (nilai 0-100, NIM unik, SKS 1-6, satu nilai per mahasiswa/mata kuliah/semester)
 
-```
-1. Login & manajemen user
-2. Dashboard
-3. Manajemen mahasiswa
-4. Manajemen mata kuliah
-5. Manajemen nilai
-6. Perhitungan IPS/IPK
-7. Transkrip nilai
-8. Search & filter
-9. Validasi data
-10. Logout & log aktivitas
-```
-=======
-1 Login & manajemen user
-2 Dashboard
-3 Manajemen mahasiswa
-4 Manajemen mata kuliah
-5 Manajemen nilai
-6 Perhitungan IPS/IPK
-7 Transkrip nilai
-8 Search & filter
-9 Validasi data
-10 Logout & log aktivitas
->>>>>>> c5b428d795557eb662c8cf03c0d7f4b18e4d585e
+Bobot nilai akhir yang dipakai saat ini: tugas 30%, UTS 30%, UAS 40% (dapat disesuaikan).
+
+## Desain Database
+
+Database `siakad` terdiri dari 6 tabel dan dinormalisasi hingga **3NF**.
+
+| Tabel               | Fungsi                                                      |
+| ------------------- | ----------------------------------------------------------- |
+| `program_studi`     | Data program studi                                          |
+| `mahasiswa`         | Biodata inti mahasiswa (NIM, nama, prodi, angkatan, status) |
+| `mata_kuliah`       | Kode, nama, dan SKS                                         |
+| `semester_akademik` | Daftar semester                                             |
+| `skala_nilai`       | Huruf mutu, bobot mutu, dan rentang nilai                   |
+| `nilai`             | Nilai per mahasiswa, mata kuliah, dan semester              |
+
+Catatan desain:
+
+- `nilai_akhir` adalah kolom turunan yang dihitung database dari nilai tugas, UTS, dan UAS.
+- Huruf mutu **tidak** disimpan di tabel `nilai`, karena akan menimbulkan ketergantungan transitif (`nilai_akhir` menentukan huruf mutu). Huruf mutu diperoleh saat query dengan mencocokkan `nilai_akhir` ke rentang di `skala_nilai`.
+- IPS dan IPK dihitung melalui VIEW (`v_ips`, `v_ipk`, `v_transkrip`), tidak disimpan sebagai data tersendiri.
+
+![ERD SIAKAD](docs/erd_ipk.png)
 
 ## Struktur Proyek
 
@@ -38,67 +43,51 @@ AcademicManagementSystem/
 ├── config.py
 ├── requirements.txt
 ├── .env.example
-├── .gitignore
-├── README.md
 │
 ├── database/
 │   ├── connection.py
-│   ├── schema.sql              ← ditulis ulang (6 tabel)
-│   ├── seed.sql                ← ditulis ulang
-│   ├── triggers_views.sql      ← diisi (v_ips, v_ipk, v_transkrip)
-│   └── create_admin.py         ← (opsional)
+│   ├── schema.sql
+│   ├── seed.sql
+│   └── triggers_views.sql
 │
-├── backend/
+├── backend/                 # logika bisnis dan query ke database
 │   ├── prodi.py
 │   ├── mahasiswa.py
 │   ├── mata_kuliah.py
 │   ├── semester.py
-│   ├── nilai.py                ← input nilai + skala nilai
-│   ├── ipk.py                  ← hitung IPS/IPK + transkrip
-│   ├── auth.py                 ← (opsional)
-│   └── log.py                  ← (opsional)
+│   ├── nilai.py
+│   └── ipk.py
 │
-├── frontend/
-│   ├── login_page.py           ← (opsional)
-│   ├── dashboard_page.py       ← ringkasan sederhana (opsional)
+├── frontend/                # tampilan GUI
 │   ├── mahasiswa_page.py
-│   ├── akademik_master_page.py ← prodi, semester, mata kuliah
+│   ├── akademik_master_page.py
 │   ├── nilai_page.py
-│   └── transkrip_page.py       ← IPS per semester, IPK, transkrip
+│   └── transkrip_page.py
 │
 ├── utils/
-│   ├── validators.py           ← nilai 0–100, format NIM
-│   ├── security.py             ← (opsional)
-│   ├── session.py              ← (opsional)
-│   └── permissions.py          ← (opsional)
+│   └── validators.py
 │
 ├── docs/
-│   ├── erd_ipk.png
-│   └── archive/erd_siakad.png  ← ERD versi lengkap
+│   └── erd_ipk.png
 │
 └── assets/
-    ├── logo.png
-    └── icons/
 ```
 
-## ERD
-
-![ERD SIAKAD](docs/erd_ipk.png)
-
-Rancangan database dinormalisasi hingga **3NF**.
+Lapisan `frontend/` tidak berisi SQL. Semua akses database dilakukan lewat `backend/`.
 
 ## Teknologi
 
 - Python 3.10+
-- MySQL 8
+- MySQL 8.0.16+ (diperlukan agar `CHECK` constraint ditegakkan)
 - Library: lihat `requirements.txt`
+- Disarankan memakai Laragon (menyediakan MySQL, HeidiSQL, dan phpMyAdmin)
 
 ## Instalasi
 
 1. **Clone repository**
 
    ```bash
-   git clone https://github.com/<username>/AcademicManagementSystem.git
+   git clone https://github.com/rhalstlyapp/AcademicManagementSystem.git
    cd AcademicManagementSystem
    ```
 
@@ -113,17 +102,15 @@ Rancangan database dinormalisasi hingga **3NF**.
 
 3. **Siapkan database**
 
-   ```sql
-   CREATE DATABASE siakad CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
-
-   Lalu import berurutan:
+   Pastikan MySQL sudah berjalan, lalu import berurutan (jalankan di Command Prompt):
 
    ```bash
-   mysql -u <user> -p siakad < database/schema.sql
-   mysql -u <user> -p siakad < database/seed.sql
-   mysql -u <user> -p siakad < database/triggers_views.sql
+   mysql -u root < database\schema.sql
+   mysql -u root < database\seed.sql
+   mysql -u root < database\triggers_views.sql
    ```
+
+   Catatan: operator `<` tidak didukung di PowerShell. Gunakan Command Prompt, atau perintah `source` di dalam prompt `mysql>`, atau fitur **Import** di phpMyAdmin / **Run SQL file** di HeidiSQL. Tambahkan `-p` setelah `-u root` jika MySQL kamu memakai password.
 
 4. **Konfigurasi environment**
 
@@ -132,21 +119,18 @@ Rancangan database dinormalisasi hingga **3NF**.
    cp .env.example .env           # macOS / Linux
    ```
 
-   Isi `DB_USER`, `DB_PASSWORD`, dan nilai lainnya di file `.env`.
+   Isi `DB_USER`, `DB_PASSWORD`, dan nilai lainnya di file `.env`. Pada Laragon bawaan, `DB_USER=root` dan `DB_PASSWORD` dibiarkan kosong.
 
 5. **Jalankan aplikasi**
+
    ```bash
    python main.py
    ```
 
-## Akun Awal
-
-Akun admin awal dibuat oleh `database/seed.sql`. Ganti password default segera setelah login pertama.
-
 ## Alur Pengembangan
 
 - Branch utama: `main`
-- Satu branch per fitur: `feature/krs`, `feature/nilai`, dst.
+- Satu branch per fitur, misalnya `feature/nilai` atau `feature/ipk`
 - Pesan commit: `feat: ...`, `fix: ...`, `docs: ...`, `refactor: ...`
 
 ## Status
