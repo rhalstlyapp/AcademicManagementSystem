@@ -32,14 +32,14 @@ def connect():
 
 def ask_password():
     while True:
-        pw = getpass("Password admin (min. 8 karakter): ")
+        pw = input("Password admin (min. 8 karakter): ")
         if len(pw) < 8:
             print("Password terlalu pendek, minimal 8 karakter.")
             continue
         if len(pw.encode("utf-8")) > 72:
             print("Password terlalu panjang (bcrypt maksimal 72 byte).")
             continue
-        if pw != getpass("Ulangi password: "):
+        if pw != input("Ulangi password: "):
             print("Password tidak sama, coba lagi.")
             continue
         return pw

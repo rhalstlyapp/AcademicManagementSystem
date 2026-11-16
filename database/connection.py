@@ -1,41 +1,51 @@
+"""Koneksi MySQL dan fungsi bantu query.
 
-import os
+Semua query WAJIB berparameter (%s), jangan pernah memakai f-string:
+    fetch_one("SELECT * FROM mahasiswa WHERE nim = %s", (nim,))
+"""
+from contextlib import contextmanager
 
 import mysql.connector
-from mysql.connector import Error
-from dotenv import load_dotenv
+
+from config import DB_CONFIG
 
 
-# Membaca konfigurasi dari file .env
-load_dotenv()
+def get_connection():
+    return mysql.connector.connect(**DB_CONFIG)
 
 
-def create_connection():
+@contextmanager
+def db_cursor(commit=False):
+    """Buka koneksi + cursor (hasil berupa dict), tutup otomatis.
+    Jika terjadi error, transaksi di-rollback."""
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
     try:
-        connection = mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME"),
-            port=int(os.getenv("DB_PORT", 3306))
-        )
-
-        if connection.is_connected():
-            return connection
-
-    except Error as e:
-        print(f"Gagal terhubung ke database: {e}")
-
-    return None
+        yield cur
+        if commit:
+            conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
 
 
-if __name__ == "__main__":
-    connection = create_connection()
+def fetch_one(sql, params=()):
+    with db_cursor() as cur:
+        cur.execute(sql, params)
+        return cur.fetchone()
 
-    if connection:
-        print("Database berhasil terhubung!")
 
-        connection.close()
-        print("Koneksi database ditutup.")
-    else:
-        print("Koneksi database gagal.")
+def fetch_all(sql, params=()):
+    with db_cursor() as cur:
+        cur.execute(sql, params)
+        return cur.fetchall()
+
+
+def execute(sql, params=()):
+    """INSERT / UPDATE / DELETE. Mengembalikan lastrowid (untuk INSERT)."""
+    with db_cursor(commit=True) as cur:
+        cur.execute(sql, params)
+        return cur.lastrowid
