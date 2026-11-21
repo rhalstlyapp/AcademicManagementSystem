@@ -1,80 +1,132 @@
-"""Login dan logout."""
-import hashlib
-import secrets
+"""Login, logout, dan pendaftaran mahasiswa.
+
+Mahasiswa login dengan Nama + NIM (NIM berfungsi sebagai pengganti password).
+Admin login dengan username + password (hash bcrypt).
+"""
 from datetime import datetime, timedelta
 
-from backend import log
 from config import SESSION_TIMEOUT_MINUTES
-from database.connection import execute, fetch_one
+from database import connection as db
 from utils import session
 from utils.security import dummy_verify, verify_password
+from utils.validators import (
+    AuthError, ValidationError, cek_id, cek_nama_orang, cek_nim, cek_wajib, normal_nama,
+)
 
-PESAN_GAGAL = "Username atau password salah."
-
-
-class AuthError(Exception):
-    """Error login yang pesannya aman ditampilkan ke pengguna."""
-
-
-_SQL_USER = """
-    SELECT u.user_id, u.username, u.email, u.password_hash, u.is_active,
-           r.nama_role AS role,
-           d.dosen_id, m.mahasiswa_id,
-           COALESCE(d.nama_lengkap, m.nama_lengkap, u.username) AS nama
-    FROM users u
-    JOIN roles r ON r.role_id = u.role_id
-    LEFT JOIN dosen d ON d.user_id = u.user_id
-    LEFT JOIN mahasiswa m ON m.user_id = u.user_id
-    WHERE u.username = %s
-"""
+PESAN_GAGAL_MAHASISWA = "Nama atau NIM salah."
+PESAN_GAGAL_ADMIN = "Username atau password salah."
+STATUS_DITOLAK = ("DO", "Keluar")
 
 
-def login(username: str, password: str) -> dict:
+def _stempel(waktu):
+    return waktu.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _mulai_sesi(**data):
+    data["expires_at"] = datetime.now() + timedelta(minutes=SESSION_TIMEOUT_MINUTES)
+    session.set_user(data)
+    return data
+
+
+# ---------------------------------------------------------------- login
+def login_mahasiswa(nama, nim):
+    """Nama dan NIM harus cocok. Nama tidak peka huruf besar/kecil dan spasi berlebih."""
+    nama = (nama or "").strip()
+    nim = (nim or "").strip()
+    if not nama or not nim:
+        raise AuthError("Nama dan NIM wajib diisi.")
+
+    baris = db.fetch_one(
+        "SELECT nim, nama_lengkap, status_mahasiswa FROM mahasiswa WHERE nim = %s", (nim,)
+    )
+    if baris is None or normal_nama(baris["nama_lengkap"]) != normal_nama(nama):
+        raise AuthError(PESAN_GAGAL_MAHASISWA)
+    if baris["status_mahasiswa"] in STATUS_DITOLAK:
+        raise AuthError(
+            f"Akun tidak dapat digunakan (status: {baris['status_mahasiswa']}). Hubungi admin."
+        )
+
+    return _mulai_sesi(
+        role="mahasiswa",
+        nim=baris["nim"],
+        nama=baris["nama_lengkap"],
+        username=baris["nim"],
+        admin_id=None,
+    )
+
+
+def login_admin(username, password):
     username = (username or "").strip()
     if not username or not password:
         raise AuthError("Username dan password wajib diisi.")
 
-    user = fetch_one(_SQL_USER, (username,))
+    baris = db.fetch_one(
+        "SELECT admin_id, username, password_hash, is_active FROM admin WHERE username = %s",
+        (username,),
+    )
+    if baris is None:
+        dummy_verify(password)          # samakan waktu respons dengan username yang ada
+        raise AuthError(PESAN_GAGAL_ADMIN)
+    if not verify_password(password, baris["password_hash"]):
+        raise AuthError(PESAN_GAGAL_ADMIN)
+    if not baris["is_active"]:
+        raise AuthError("Akun dinonaktifkan.")
 
-    if user is None:
-        dummy_verify(password)
-        log.catat(None, "LOGIN_GAGAL", "auth", detail={"username": username})
-        raise AuthError(PESAN_GAGAL)
-
-    if not verify_password(password, user["password_hash"]):
-        log.catat(user["user_id"], "LOGIN_GAGAL", "auth")
-        raise AuthError(PESAN_GAGAL)
-
-    if not user["is_active"]:
-        log.catat(user["user_id"], "LOGIN_DITOLAK", "auth", detail={"alasan": "akun nonaktif"})
-        raise AuthError("Akun dinonaktifkan. Hubungi admin.")
-
-    token = secrets.token_urlsafe(32)
-    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    expires_at = datetime.now() + timedelta(minutes=SESSION_TIMEOUT_MINUTES)
-
-    session_id = log.buat_session(user["user_id"], token_hash, expires_at)
-    execute("UPDATE users SET last_login_at = NOW() WHERE user_id = %s", (user["user_id"],))
-    log.catat(user["user_id"], "LOGIN", "auth")
-
-    current = {
-        "user_id": user["user_id"],
-        "username": user["username"],
-        "email": user["email"],
-        "role": user["role"],
-        "nama": user["nama"],
-        "dosen_id": user["dosen_id"],
-        "mahasiswa_id": user["mahasiswa_id"],
-        "session_id": session_id,
-        "expires_at": expires_at,
-    }
-    session.set_user(current)
-    return current
+    db.execute(
+        "UPDATE admin SET last_login_at = %s WHERE admin_id = %s",
+        (_stempel(datetime.now()), baris["admin_id"]),
+    )
+    return _mulai_sesi(
+        role="admin",
+        nim=None,
+        nama=baris["username"],
+        username=baris["username"],
+        admin_id=baris["admin_id"],
+    )
 
 
-def logout() -> None:
-    user = session.get_user()
-    if user is not None:
-        log.tutup_session(user["session_id"])
-        log.catat(user["user_id"], "LOGOUT", "auth")
+def logout():
     session.clear()
+
+
+def pengguna_saat_ini():
+    return session.get_user()
+
+
+# ------------------------------------------------- data publik untuk formulir daftar
+def daftar_jurusan():
+    """Dipakai dropdown pada formulir pendaftaran (pengguna belum login)."""
+    return db.fetch_all(
+        "SELECT jurusan_id, kode_jurusan, nama_jurusan FROM jurusan ORDER BY nama_jurusan"
+    )
+
+
+def daftar_prodi(jurusan_id):
+    """Prodi di bawah satu jurusan, untuk dropdown yang bergantung pada jurusan."""
+    jurusan_id = cek_id(jurusan_id, "Jurusan")
+    return db.fetch_all(
+        "SELECT prodi_id, kode_prodi, nama_prodi, jenjang FROM program_studi "
+        "WHERE jurusan_id = %s ORDER BY nama_prodi",
+        (jurusan_id,),
+    )
+
+
+# ------------------------------------------------------------ pendaftaran
+def registrasi(nama, nim, prodi_id):
+    """Mendaftarkan mahasiswa baru (status Aktif). Mengembalikan NIM.
+    Jurusan tidak disimpan; ia diturunkan dari prodi."""
+    nama = cek_nama_orang(nama, "Nama")
+    nim = cek_nim(nim)
+    prodi_id = cek_id(cek_wajib(prodi_id, "Program studi"), "Program studi")
+
+    if db.fetch_one("SELECT prodi_id FROM program_studi WHERE prodi_id = %s", (prodi_id,)) is None:
+        raise ValidationError("Program studi tidak ditemukan.")
+    if db.fetch_one("SELECT nim FROM mahasiswa WHERE nim = %s", (nim,)):
+        raise ValidationError("NIM sudah terdaftar.")
+
+    db.execute(
+        "INSERT INTO mahasiswa (nim, prodi_id, nama_lengkap, status_mahasiswa) "
+        "VALUES (%s, %s, %s, 'Aktif')",
+        (nim, prodi_id, nama),
+    )
+    return nim
