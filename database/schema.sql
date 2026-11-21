@@ -43,24 +43,24 @@ CREATE TABLE IF NOT EXISTS users (
 -- B. MASTER AKADEMIK
 -- =====================================================================
 
-CREATE TABLE IF NOT EXISTS fakultas (
-    fakultas_id    INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    kode_fakultas  VARCHAR(10)  NOT NULL,
-    nama_fakultas  VARCHAR(100) NOT NULL,
-    PRIMARY KEY (fakultas_id),
-    UNIQUE KEY uq_fakultas_kode (kode_fakultas)
+CREATE TABLE IF NOT EXISTS jurusan (
+    jurusan_id    INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    kode_jurusan  VARCHAR(10)  NOT NULL,
+    nama_jurusan  VARCHAR(100) NOT NULL,
+    PRIMARY KEY (jurusan_id),
+    UNIQUE KEY uq_jurusan_kode (kode_jurusan)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS program_studi (
     prodi_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    fakultas_id  INT UNSIGNED NOT NULL,
+    jurusan_id   INT UNSIGNED NOT NULL,
     kode_prodi   VARCHAR(10)  NOT NULL,
     nama_prodi   VARCHAR(100) NOT NULL,
     jenjang      ENUM('D3','D4','S1','S2','S3') NOT NULL,
     PRIMARY KEY (prodi_id),
     UNIQUE KEY uq_prodi_kode (kode_prodi),
-    KEY idx_prodi_fakultas (fakultas_id),
-    CONSTRAINT fk_prodi_fakultas FOREIGN KEY (fakultas_id) REFERENCES fakultas (fakultas_id)
+    KEY idx_prodi_jurusan (jurusan_id),
+    CONSTRAINT fk_prodi_jurusan FOREIGN KEY (jurusan_id) REFERENCES jurusan (jurusan_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS semester_akademik (

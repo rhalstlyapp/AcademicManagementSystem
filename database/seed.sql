@@ -51,15 +51,36 @@ WHERE NOT EXISTS (SELECT 1 FROM aturan_batas_sks);
 -- ---------------------------------------------------------------------
 -- 4. Contoh data master (untuk uji coba; ganti sesuai kampus kamu)
 -- ---------------------------------------------------------------------
-INSERT INTO fakultas (kode_fakultas, nama_fakultas) VALUES
-    ('FT', 'Fakultas Teknik')
-ON DUPLICATE KEY UPDATE nama_fakultas = VALUES(nama_fakultas);
+INSERT INTO jurusan (kode_jurusan, nama_jurusan) VALUES
+    ('TEK', 'Teknik')
+ON DUPLICATE KEY UPDATE nama_jurusan = VALUES(nama_jurusan);
 
-INSERT INTO program_studi (fakultas_id, kode_prodi, nama_prodi, jenjang)
-SELECT f.fakultas_id, 'TI', 'Teknik Informatika', 'S1'
-FROM fakultas f
-WHERE f.kode_fakultas = 'FT'
+INSERT INTO program_studi (jurusan_id, kode_prodi, nama_prodi, jenjang)
+SELECT j.jurusan_id, 'TI', 'Teknik Informatika', 'S1'
+FROM jurusan j
+WHERE j.kode_jurusan = 'TEK'
 ON DUPLICATE KEY UPDATE nama_prodi = VALUES(nama_prodi);
+
+INSERT INTO kurikulum (prodi_id, nama_kurikulum, tahun_berlaku, is_aktif)
+SELECT p.prodi_id, 'Kurikulum 2026', 2026, TRUE
+FROM program_studi p
+WHERE p.kode_prodi = 'TI'
+ON DUPLICATE KEY UPDATE is_aktif = VALUES(is_aktif);
+
+INSERT INTO mata_kuliah (kurikulum_id, kode_mk, nama_mk, sks, semester_paket, jenis_mk)
+SELECT k.kurikulum_id, contoh.kode_mk, contoh.nama_mk, contoh.sks, contoh.semester_paket, 'Wajib'
+FROM kurikulum k
+JOIN program_studi p ON p.prodi_id = k.prodi_id
+JOIN (
+    SELECT 'TI101' AS kode_mk, 'Algoritma dan Pemrograman' AS nama_mk, 3 AS sks, 1 AS semester_paket
+    UNION ALL SELECT 'TI102', 'Matematika Diskrit', 3, 1
+    UNION ALL SELECT 'TI201', 'Basis Data', 3, 3
+) AS contoh
+WHERE p.kode_prodi = 'TI' AND k.nama_kurikulum = 'Kurikulum 2026'
+ON DUPLICATE KEY UPDATE
+    nama_mk = VALUES(nama_mk),
+    sks = VALUES(sks),
+    semester_paket = VALUES(semester_paket);
 
 -- Periode KRS sengaja dibuat panjang agar fitur KRS bisa diuji kapan saja.
 INSERT INTO semester_akademik

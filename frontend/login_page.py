@@ -1,109 +1,73 @@
+"""Halaman login Tkinter yang memanggil backend autentikasi."""
 import tkinter as tk
+from tkinter import messagebox, ttk
 
-from assets.colors import (
-    BG_COLOR,
-    CARD_BG,
-    TEXT_DARK,
-    PRIMARY_COLOR,
-    ACCENT_COLOR
-)
-from tkinter import messagebox
+import mysql.connector
 
-from backend.auth import login, register
-
-#Untuk membuat halaman login
-window = tk.Tk()
-window.title("Login SIAKAD")
-window.geometry("400x300")
-window.configure(bg=BG_COLOR)
+from assets.colors import BG_COLOR, CARD_BG, PRIMARY_COLOR, TEXT_DARK
+from backend import auth
+from utils.validators import AppError
 
 
+def tampilkan_login(root):
+    frame = tk.Frame(root, bg=BG_COLOR)
+    frame.pack(fill="both", expand=True)
 
-# Creating widgets
-login_label = tk.Label(
-    window,
-    text="Login",
-    font=("Arial", 20),
-    bg=BG_COLOR,
-    fg=TEXT_DARK
-)
+    kartu = tk.Frame(frame, bg=CARD_BG, padx=38, pady=32)
+    kartu.place(relx=0.5, rely=0.46, anchor="center")
 
-username_label = tk.Label(
-    window,
-    text="Username:",
-    font=("Arial", 12),
-    bg=CARD_BG,
-    fg=TEXT_DARK
-)
+    tk.Label(
+        kartu,
+        text="SIAKAD",
+        font=("Segoe UI", 26, "bold"),
+        bg=CARD_BG,
+        fg=PRIMARY_COLOR,
+    ).pack(anchor="w")
+    tk.Label(
+        kartu,
+        text="Masuk menggunakan username admin atau NIM mahasiswa/dosen.",
+        bg=CARD_BG,
+        fg=TEXT_DARK,
+        wraplength=360,
+        justify="left",
+    ).pack(anchor="w", pady=(4, 22))
 
-username_entry = tk.Entry(
-    window,
-    font=("Arial", 12)
-)
+    tk.Label(kartu, text="Username / NIM", bg=CARD_BG).pack(anchor="w")
+    username = ttk.Entry(kartu, width=42)
+    username.pack(fill="x", pady=(4, 14))
 
-nim_label = tk.Label(
-    window,
-    text="NIM:",
-    font=("Arial", 12),
-    bg=CARD_BG,
-    fg=TEXT_DARK
-)
+    tk.Label(kartu, text="Password", bg=CARD_BG).pack(anchor="w")
+    password = ttk.Entry(kartu, width=42, show="•")
+    password.pack(fill="x", pady=(4, 18))
 
-nim_entry = tk.Entry(
-    window,
-    font=("Arial", 12)
-)
+    def masuk(event=None):
+        try:
+            user = auth.login(username.get(), password.get())
+        except AppError as err:
+            messagebox.showerror("Login gagal", str(err), parent=root)
+            password.focus_set()
+            return
+        except mysql.connector.Error as err:
+            messagebox.showerror(
+                "Database tidak tersedia",
+                f"Tidak dapat mengakses database. Periksa konfigurasi .env dan server MySQL.\n\n{err}",
+                parent=root,
+            )
+            return
+        root.unbind("<Return>")
+        frame.destroy()
+        from frontend.dashboard_page import tampilkan_dashboard
 
-login_button = tk.Button(
-    window,
-    text="Login",
-    font=("Arial", 12),
-    command=lambda: login(
-        username_entry.get(),
-        nim_entry.get()
-    )
-)
+        tampilkan_dashboard(root, user)
 
-# Teks "Anda belum punya akun?"
-register_text = tk.Label(
-    window,
-    text="Anda belum punya akun?",
-    font=("Arial", 10),
-    bg=CARD_BG,
-    fg=TEXT_DARK
-)
+    ttk.Button(kartu, text="Masuk", command=masuk).pack(fill="x")
+    tk.Label(
+        kartu,
+        text="Akun mahasiswa dibuat oleh administrator.",
+        bg=CARD_BG,
+        fg=TEXT_DARK,
+    ).pack(anchor="w", pady=(16, 0))
 
-# Tombol Register
-register_button = tk.Button(
-    window,
-    text="Register",
-    font=("Arial", 10),
-    fg="blue",
-    relief="flat",
-    bd=0,
-    cursor="hand2",
-    command=lambda: register(
-        username_entry.get(),
-        nim_entry.get()
-    )
-)
-
-
-# Placing widgets on the window
-login_label.pack(pady=20)
-
-username_label.pack()
-username_entry.pack(pady=5)
-
-nim_label.pack()
-nim_entry.pack(pady=5)
-
-login_button.pack(pady=20)
-
-register_text.pack(pady=(5, 0))
-register_button.pack(pady=(0, 10))
-
-
-
-
-window.mainloop()
+    root.bind("<Return>", masuk)
+    username.focus_set()
+    return frame

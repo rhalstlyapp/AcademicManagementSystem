@@ -4,10 +4,11 @@ Aplikasi desktop berbasis Python (GUI) dan MySQL untuk mengelola nilai mahasiswa
 
 ## Fitur
 
-- Login wajib dengan dua role: **admin** dan **mahasiswa**
-- Manajemen data mahasiswa, program studi, mata kuliah, dan semester (admin)
-- Pembuatan dan pengelolaan akun mahasiswa oleh admin
-- Input nilai (tugas, UTS, UAS); nilai akhir dihitung otomatis oleh database
+- Login admin, dosen, dan mahasiswa memakai username/NIM serta password
+- Pembuatan akun dosen dan mahasiswa oleh admin
+- Manajemen data mahasiswa, dosen, jurusan, program studi, mata kuliah, dan semester
+- Mahasiswa mengisi KRS dan dosen PA menyetujui atau menolaknya
+- Input dan finalisasi nilai oleh dosen pada kelas yang diajar
 - Konversi nilai angka ke huruf mutu melalui skala nilai yang dapat diubah
 - Perhitungan **IPS** per semester dan **IPK** menggunakan VIEW
 - Transkrip nilai beserta status kelulusan
@@ -18,26 +19,34 @@ Bobot nilai akhir yang dipakai: tugas 30%, UTS 30%, UAS 40%. Untuk mata kuliah y
 
 ## Hak Akses
 
-| Fitur                                             | Admin           | Mahasiswa              |
-| ------------------------------------------------- | --------------- | ---------------------- |
-| Kelola mahasiswa dan akun                         | ya              | tidak                  |
-| Kelola data master (prodi, semester, mata kuliah) | ya              | tidak                  |
-| Input nilai                                       | ya              | tidak                  |
-| Lihat transkrip dan IPK                           | semua mahasiswa | hanya miliknya sendiri |
+| Fitur                                                      | Admin           | Dosen             | Mahasiswa              |
+| ---------------------------------------------------------- | --------------- | ----------------- | ---------------------- |
+| Kelola akun dosen dan mahasiswa                            | ya              | tidak             | tidak                  |
+| Kelola data master (jurusan, prodi, mata kuliah, semester) | ya              | tidak             | tidak                  |
+| Kelola KRS                                                  | tidak           | setujui KRS PA    | pilih kelas            |
+| Input nilai                                                | tidak           | kelas yang diajar | tidak                  |
+| Lihat transkrip dan IPK                                    | semua mahasiswa | semua mahasiswa   | hanya miliknya sendiri |
+
+Pembatasan "hanya miliknya sendiri" ditegakkan di lapisan backend, bukan hanya dengan menyembunyikan menu.
+
+## Catatan Keamanan
+
+Password untuk akun admin, dosen, dan mahasiswa disimpan sebagai hash bcrypt pada tabel `users`. Mahasiswa hanya dapat melihat transkrip miliknya; nilai hanya dapat difinalisasi oleh dosen yang mengajar kelas terkait.
 
 ## Desain Database
 
-Database `siakad` terdiri dari 7 tabel dan dinormalisasi hingga **3NF**.
+Database `siakad` terdiri dari tabel akademik yang saling terhubung dengan foreign key dan dinormalisasi hingga **3NF**.
 
-| Tabel               | Fungsi                                                      |
-| ------------------- | ----------------------------------------------------------- |
-| `program_studi`     | Data program studi                                          |
-| `mahasiswa`         | Biodata inti mahasiswa (NIM, nama, prodi, angkatan, status) |
-| `users`             | Akun login (admin atau mahasiswa)                           |
-| `mata_kuliah`       | Kode, nama, dan SKS                                         |
-| `semester_akademik` | Daftar semester                                             |
-| `skala_nilai`       | Huruf mutu, bobot mutu, dan rentang nilai                   |
-| `nilai`             | Nilai per mahasiswa, mata kuliah, dan semester              |
+| Tabel               | Fungsi                                               |
+| ------------------- | ---------------------------------------------------- |
+| `jurusan`           | Data jurusan                                         |
+| `program_studi`     | Program studi, berada di bawah satu jurusan          |
+| `mahasiswa`         | Biodata mahasiswa; **NIM adalah primary key**        |
+| `admin`             | Akun admin (username dan hash password)              |
+| `mata_kuliah`       | Kode, nama, dan SKS                                  |
+| `semester_akademik` | Daftar semester                                      |
+| `skala_nilai`       | Huruf mutu, bobot mutu, dan rentang nilai            |
+| `nilai`             | Nilai per mahasiswa (NIM), mata kuliah, dan semester |
 
 ### ERD
 
@@ -45,35 +54,39 @@ Keterangan: `PK` primary key, `FK` foreign key, `UK` unique. Teks dalam tanda ku
 
 ```mermaid
 erDiagram
+    jurusan ||--o{ program_studi : "menaungi"
     program_studi ||--o{ mahasiswa : "memiliki"
     mahasiswa ||--o{ nilai : "memperoleh"
     mata_kuliah ||--o{ nilai : "dinilai dalam"
     semester_akademik ||--o{ nilai : "periode"
     skala_nilai ||..o{ nilai : "konversi lewat rentang nilai"
-    mahasiswa |o--o| users : "memiliki akun"
 
+    jurusan {
+        int jurusan_id PK "AUTO_INCREMENT"
+        varchar kode_jurusan UK "NOT NULL"
+        varchar nama_jurusan "NOT NULL"
+    }
     program_studi {
         int prodi_id PK "AUTO_INCREMENT"
+        int jurusan_id FK "NOT NULL"
         varchar kode_prodi UK "NOT NULL"
         varchar nama_prodi "NOT NULL"
         enum jenjang "D3, D4, S1, S2, S3"
     }
     mahasiswa {
-        int mahasiswa_id PK "AUTO_INCREMENT"
+        varchar nim PK "identitas dan pengganti password"
         int prodi_id FK "NOT NULL"
-        varchar nim UK "NOT NULL"
         varchar nama_lengkap "NOT NULL"
-        enum jenis_kelamin "L atau P"
-        date tanggal_lahir "NOT NULL"
-        smallint angkatan "CHECK 1990 sampai 2100"
+        enum jenis_kelamin "boleh NULL"
+        date tanggal_lahir "boleh NULL"
+        smallint angkatan "boleh NULL, CHECK 1990 sampai 2100"
         enum status_mahasiswa "default Aktif"
+        datetime terdaftar_pada "default sekarang"
     }
-    users {
-        int user_id PK "AUTO_INCREMENT"
-        int mahasiswa_id FK, UK "NULL untuk admin"
+    admin {
+        int admin_id PK "AUTO_INCREMENT"
         varchar username UK "NOT NULL"
         varchar password_hash "hash bcrypt"
-        enum role "admin atau mahasiswa"
         boolean is_active "default TRUE"
         datetime last_login_at "boleh NULL"
         datetime created_at "default sekarang"
@@ -100,7 +113,7 @@ erDiagram
     }
     nilai {
         int nilai_id PK "AUTO_INCREMENT"
-        int mahasiswa_id FK "UNIQUE gabungan"
+        varchar nim FK "UNIQUE gabungan, ON UPDATE CASCADE"
         int mk_id FK "UNIQUE gabungan"
         int semester_id FK "UNIQUE gabungan"
         decimal nilai_tugas "CHECK 0 sampai 100"
@@ -110,72 +123,78 @@ erDiagram
     }
 ```
 
-Cara membaca relasi: `||` tepat satu, `o|` nol atau satu, `o{` nol atau banyak. Garis putus-putus berarti relasi logis tanpa foreign key. Versi gambar tersedia di [docs/erd_ipk.png](docs/erd_ipk.png).
+Cara membaca relasi: `||` tepat satu, `o|` nol atau satu, `o{` nol atau banyak. Garis putus-putus berarti relasi logis tanpa foreign key. Tabel `admin` berdiri sendiri karena admin tidak terkait dengan data mahasiswa. Versi gambar tersedia di [docs/erd_ipk.png](docs/erd_ipk.png).
 
 ### Aturan dan constraint
 
-| Aturan                                                                | Cara penerapan                                           |
-| --------------------------------------------------------------------- | -------------------------------------------------------- |
-| Satu mahasiswa hanya punya satu nilai per mata kuliah per semester    | `UNIQUE (mahasiswa_id, mk_id, semester_id)` pada `nilai` |
-| Nilai tugas, UTS, UAS harus 0 sampai 100                              | `CHECK` pada `nilai`                                     |
-| Nilai akhir selalu konsisten dengan komponennya                       | _generated column_: tugas 30% + UTS 30% + UAS 40%        |
-| Admin tidak punya profil mahasiswa, akun mahasiswa wajib punya        | `CHECK` pada `users`                                     |
-| NIM, username, kode mata kuliah, dan kode semester tidak boleh kembar | `UNIQUE`                                                 |
-| SKS antara 1 dan 6                                                    | `CHECK` pada `mata_kuliah`                               |
-| Nilai baru hanya untuk mahasiswa berstatus Aktif                      | trigger `trg_nilai_cek_status_bi`                        |
-| IPS, IPK, dan transkrip dihitung tanpa menyimpan data ganda           | `VIEW`: `v_ips`, `v_ipk`, `v_transkrip`                  |
+| Aturan                                                                                 | Cara penerapan                                    |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| NIM adalah identitas unik mahasiswa                                                    | `PRIMARY KEY (nim)` pada `mahasiswa`              |
+| Mengganti NIM otomatis memindahkan nilainya                                            | `FOREIGN KEY ... ON UPDATE CASCADE` pada `nilai`  |
+| Satu mahasiswa hanya punya satu nilai per mata kuliah per semester                     | `UNIQUE (nim, mk_id, semester_id)` pada `nilai`   |
+| Nilai tugas, UTS, UAS harus 0 sampai 100                                               | `CHECK` pada `nilai`                              |
+| Nilai akhir selalu konsisten dengan komponennya                                        | _generated column_: tugas 30% + UTS 30% + UAS 40% |
+| Kode jurusan, prodi, mata kuliah, dan semester serta username admin tidak boleh kembar | `UNIQUE`                                          |
+| SKS antara 1 dan 6                                                                     | `CHECK` pada `mata_kuliah`                        |
+| Nilai baru hanya untuk mahasiswa berstatus Aktif                                       | trigger `trg_nilai_cek_status_bi`                 |
+| Mahasiswa berstatus DO atau Keluar tidak dapat login                                   | validasi di `backend/auth.py`                     |
+| IPS, IPK, dan transkrip dihitung tanpa menyimpan data ganda                            | `VIEW`: `v_ips`, `v_ipk`, `v_transkrip`           |
 
 ### Catatan desain
 
 - `nilai_akhir` adalah kolom turunan yang dihitung database dari nilai tugas, UTS, dan UAS.
 - Huruf mutu **tidak** disimpan di tabel `nilai`, karena akan menimbulkan ketergantungan transitif (`nilai_akhir` menentukan huruf mutu). Huruf mutu diperoleh saat query dengan mencocokkan `nilai_akhir` ke rentang di `skala_nilai`.
+- Jurusan **tidak** disimpan di tabel `mahasiswa`, karena dapat diturunkan dari program studi (`mahasiswa` ke `program_studi` ke `jurusan`).
 - IPS dan IPK dihitung melalui VIEW, tidak disimpan sebagai data tersendiri.
 
-## Struktur Proyek
+### Struktur Project
 
-```
 AcademicManagementSystem/
+│
 ├── main.py
 ├── config.py
 ├── requirements.txt
 ├── .env.example
 │
 ├── database/
-│   ├── connection.py
-│   ├── schema.sql
-│   ├── seed.sql
-│   ├── triggers_views.sql
-│   └── create_admin.py
+│ ├── connection.py
+│ ├── schema.sql
+│ ├── seed.sql
+│ ├── triggers_views.sql
+│ └── create_admin.py
 │
-├── backend/                 # logika bisnis dan query ke database
-│   ├── auth.py
-│   ├── user.py
-│   ├── prodi.py
-│   ├── mahasiswa.py
-│   ├── mata_kuliah.py
-│   ├── semester.py
-│   ├── nilai.py
-│   └── ipk.py
+├── backend/
+├── auth.py
+├── user.py
+├── jurusan.py
+├── prodi.py
+├── mahasiswa.py
+├── mata_kuliah.py
+├── semester.py
+├── skala_nilai.py
+├── nilai.py
+└── ipk.py
 │
-├── frontend/                # tampilan GUI
-│   ├── main_window.py
-│   ├── login_page.py
-│   ├── mahasiswa_page.py
-│   ├── akademik_master_page.py
-│   ├── nilai_page.py
-│   └── transkrip_page.py
+├── frontend/
+│ ├── main_window.py
+│ ├── login_page.py
+│ ├── mahasiswa_page.py
+│ ├── akademik_master_page.py
+│ ├── nilai_page.py
+│ └── transkrip_page.py
 │
 ├── utils/
-│   ├── validators.py
-│   ├── security.py
-│   ├── session.py
-│   └── permissions.py
+│ ├── validators.py
+│ ├── security.py
+│ ├── session.py
+│ └── permissions.py
 │
 ├── docs/
-│   └── erd_ipk.png
+│ └── erd_ipk.png
 │
 └── assets/
-```
+├── colors.py
+└── ...
 
 Lapisan `frontend/` tidak berisi SQL. Semua akses database dilakukan lewat `backend/`.
 
@@ -233,13 +252,15 @@ Lapisan `frontend/` tidak berisi SQL. Semua akses database dilakukan lewat `back
    python database/create_admin.py
    ```
 
-   Password diketik saat skrip berjalan dan tidak tampil di layar. Akun mahasiswa dibuat oleh admin melalui aplikasi.
+   Password diketik saat skrip berjalan dan tidak tampil di layar. Mahasiswa tidak memerlukan langkah ini: mereka mendaftar sendiri lewat tombol Daftar di halaman login.
 
 6. **Jalankan aplikasi**
 
    ```bash
    python main.py
    ```
+
+   Data contoh yang bisa dipakai untuk mencoba login mahasiswa: nama `Budi Santoso` dengan NIM `2501001`.
 
 ## Alur Pengembangan
 
