@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 """Palet warna & tipografi aplikasi — Tema "Academic Forest (POLNES)".
 
 Prinsip:
@@ -82,7 +82,7 @@ ACADEMIC_COLOR_PALETTE = {
     "accent_color": "#4A773E",    # Hijau aksen untuk hover/highlight
     "sidebar_bg": "#1B2E16"       # Hijau gelap untuk navigasi samping
 }
-=======
+
 # Palet Warna Website Bertema Kopi (Versi Singkat)
 
 BG_COLOR = "#F7F3EE"
@@ -90,4 +90,4 @@ CARD_BG = "#EFE8DD"
 TEXT_DARK = "#1A120B"
 PRIMARY_COLOR = "#0F382C"
 ACCENT_COLOR = "#7A3E36"
->>>>>>> 4cca13e (feat: NIM as primary key, Nama+NIM login, registration, jurusan)
+

@@ -4,11 +4,11 @@ from tkinter import messagebox, ttk
 
 import mysql.connector
 
-<<<<<<< HEAD
+
 from assets.colors import BG_COLOR, TEXT_DARK, TEXT_MUTED
-=======
+
 from assets.colors import BG_COLOR, TEXT_DARK
->>>>>>> 8c61a35 (feat: tambah pengelolaan dosen dan kelas)
+
 from backend import dosen, prodi
 from utils.validators import AppError
 
@@ -51,7 +51,7 @@ def tampilkan_dosen(parent):
         table.heading(key, text=label)
         table.column(key, width=width, anchor="w")
     table.pack(fill="both", expand=True)
-<<<<<<< HEAD
+
     info_kosong = tk.Label(
         parent,
         text="Belum ada data dosen. Klik Tambah Dosen untuk membuat profil dan akun login.",
@@ -63,10 +63,10 @@ def tampilkan_dosen(parent):
 
     def muat_data():
         info_kosong.pack_forget()
-=======
+
 
     def muat_data():
->>>>>>> 8c61a35 (feat: tambah pengelolaan dosen dan kelas)
+
         for item in table.get_children():
             table.delete(item)
         try:
@@ -74,11 +74,10 @@ def tampilkan_dosen(parent):
         except (AppError, mysql.connector.Error) as err:
             messagebox.showerror("Data dosen", str(err), parent=parent)
             return
-<<<<<<< HEAD
+
         if not rows:
             info_kosong.pack(fill="x", before=table, pady=(8, 4))
-=======
->>>>>>> 8c61a35 (feat: tambah pengelolaan dosen dan kelas)
+
         for row in rows:
             table.insert(
                 "",
@@ -104,7 +103,7 @@ def tampilkan_dosen(parent):
             messagebox.showwarning("Akun dosen", "Buat jurusan dan program studi terlebih dahulu.", parent=parent)
             return
 
-<<<<<<< HEAD
+
         induk = parent.winfo_toplevel()
         dialog = tk.Toplevel(induk)
         dialog.title("Tambah Dosen")
@@ -116,12 +115,12 @@ def tampilkan_dosen(parent):
         x = induk.winfo_rootx() + max((induk.winfo_width() - 900) // 2, 0)
         y = induk.winfo_rooty() + max((induk.winfo_height() - 620) // 2, 0)
         dialog.geometry(f"900x620+{x}+{y}")
-=======
+
         dialog = tk.Toplevel(parent.winfo_toplevel())
         dialog.title("Tambah Dosen")
         dialog.transient(parent.winfo_toplevel())
         dialog.grab_set()
->>>>>>> 8c61a35 (feat: tambah pengelolaan dosen dan kelas)
+
         form = ttk.Frame(dialog, padding=18)
         form.pack(fill="both", expand=True)
         form.columnconfigure(1, weight=1)
@@ -148,17 +147,17 @@ def tampilkan_dosen(parent):
         pilihan_prodi = ttk.Combobox(
             form,
             state="readonly",
-<<<<<<< HEAD
+
             width=76,
             height=14,
             values=[
                 f"{row['nama_jurusan']} — {row['jenjang']} {row['nama_prodi']} ({row['kode_prodi']})"
                 for row in prodi_rows
             ],
-=======
+
             width=34,
             values=[f"{row['kode_prodi']} - {row['nama_prodi']} ({row['nama_jurusan']})" for row in prodi_rows],
->>>>>>> 8c61a35 (feat: tambah pengelolaan dosen dan kelas)
+
         )
         pilihan_prodi.grid(row=row_index, column=1, sticky="ew", pady=5)
         pilihan_prodi.current(0)

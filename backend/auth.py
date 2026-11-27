@@ -1,18 +1,18 @@
-<<<<<<< HEAD
+
 """Autentikasi dan registrasi akun berdasarkan tabel users/roles."""
-=======
+
 """Login, logout, dan pendaftaran mahasiswa.
 
 Mahasiswa login dengan Nama + NIM (NIM berfungsi sebagai pengganti password).
 Admin login dengan username + password (hash bcrypt).
 """
->>>>>>> 4cca13e (feat: NIM as primary key, Nama+NIM login, registration, jurusan)
+
 from datetime import datetime, timedelta
 
 from config import SESSION_TIMEOUT_MINUTES
 from database import connection as db
 from utils import session
-<<<<<<< HEAD
+
 from utils.permissions import ADMIN, DOSEN, require_role
 from utils.security import dummy_verify, hash_password, verify_password
 from utils.validators import (
@@ -147,7 +147,7 @@ def login_dosen(username, password):
     return user
 
 
-=======
+
 from utils.security import dummy_verify, verify_password
 from utils.validators import (
     AuthError, ValidationError, cek_id, cek_nama_orang, cek_nim, cek_wajib, normal_nama,
@@ -225,49 +225,51 @@ def login_admin(username, password):
     )
 
 
->>>>>>> 4cca13e (feat: NIM as primary key, Nama+NIM login, registration, jurusan)
+
 def logout():
     session.clear()
 
 
 def pengguna_saat_ini():
-<<<<<<< HEAD
+
     return session.get_user() if session.is_logged_in() else None
 
 
 def daftar_jurusan():
-=======
+
     return session.get_user()
 
 
 # ------------------------------------------------- data publik untuk formulir daftar
 def daftar_jurusan():
     """Dipakai dropdown pada formulir pendaftaran (pengguna belum login)."""
->>>>>>> 4cca13e (feat: NIM as primary key, Nama+NIM login, registration, jurusan)
+
     return db.fetch_all(
         "SELECT jurusan_id, kode_jurusan, nama_jurusan FROM jurusan ORDER BY nama_jurusan"
     )
 
 
 def daftar_prodi(jurusan_id):
-<<<<<<< HEAD
+
     jurusan_id = cek_id(jurusan_id, "Jurusan")
     return db.fetch_all(
         "SELECT prodi_id, jurusan_id, kode_prodi, nama_prodi, jenjang "
         "FROM program_studi WHERE jurusan_id = %s AND jenjang IN ('D3', 'D4') "
         "ORDER BY jenjang, nama_prodi",
-=======
+        (jurusan_id,),
+    )
+
     """Prodi di bawah satu jurusan, untuk dropdown yang bergantung pada jurusan."""
     jurusan_id = cek_id(jurusan_id, "Jurusan")
     return db.fetch_all(
         "SELECT prodi_id, kode_prodi, nama_prodi, jenjang FROM program_studi "
         "WHERE jurusan_id = %s ORDER BY nama_prodi",
->>>>>>> 4cca13e (feat: NIM as primary key, Nama+NIM login, registration, jurusan)
-        (jurusan_id,),
     )
+    (jurusan_id,),
+    
 
 
-<<<<<<< HEAD
+
 @require_role(ADMIN)
 def daftar_dosen(prodi_id):
     prodi_id = cek_id(prodi_id, "Program studi")
@@ -393,7 +395,7 @@ def registrasi_mahasiswa(nama, nim, prodi_id):
 
 
 register = registrasi
-=======
+
 # ------------------------------------------------------------ pendaftaran
 def registrasi(nama, nim, prodi_id):
     """Mendaftarkan mahasiswa baru (status Aktif). Mengembalikan NIM.
@@ -413,4 +415,3 @@ def registrasi(nama, nim, prodi_id):
         (nim, prodi_id, nama),
     )
     return nim
->>>>>>> 4cca13e (feat: NIM as primary key, Nama+NIM login, registration, jurusan)
