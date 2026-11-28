@@ -519,9 +519,9 @@ SELECT
 FROM roles r
 
 JOIN (
-    SELECT '2501001' AS nim
-    UNION ALL SELECT '2501002'
-    UNION ALL SELECT '2502001'
+    SELECT '250100001' AS nim
+    UNION ALL SELECT '250100002'
+    UNION ALL SELECT '250200001'
 ) AS x
 
 WHERE r.nama_role = 'mahasiswa';
@@ -571,7 +571,7 @@ SELECT
 
 FROM (
     SELECT
-        '2501001' AS nim,
+        '250100001' AS nim,
         'Budi Santoso' AS nama_lengkap,
         'L' AS jenis_kelamin,
         'Samarinda' AS tempat_lahir,
@@ -588,7 +588,7 @@ FROM (
     UNION ALL
 
     SELECT
-        '2501002',
+        '250100002',
         'Siti Aminah',
         'P',
         'Samarinda',
@@ -605,7 +605,7 @@ FROM (
     UNION ALL
 
     SELECT
-        '2502001',
+        '250200001',
         'Andi Wijaya',
         'L',
         'Balikpapan',
@@ -722,7 +722,7 @@ FROM mahasiswa m
 JOIN semester_akademik s
     ON s.kode_semester = '20261'
 
-WHERE m.nim IN ('2501001', '2501002');
+WHERE m.nim IN ('250100001', '250100002');
 
 
 -- =====================================================================
@@ -751,7 +751,7 @@ JOIN kelas kl
     ON kl.semester_id = s.semester_id
 
 WHERE
-    m.nim IN ('2501001', '2501002')
+    m.nim IN ('250100001', '250100002')
     AND s.kode_semester = '20261';
 
 
@@ -797,32 +797,32 @@ SELECT
     NOW()
 
 FROM (
-    SELECT '2501001' AS nim, 'IF101' AS kode_mk, '20251' AS kode_semester, 55.00 AS nilai_angka
+    SELECT '250100001' AS nim, 'IF101' AS kode_mk, '20251' AS kode_semester, 55.00 AS nilai_angka
     UNION ALL
-    SELECT '2501001', 'IF102', '20251', 88.00
+    SELECT '250100001', 'IF102', '20251', 88.00
     UNION ALL
-    SELECT '2501001', 'IF103', '20251', 82.00
+    SELECT '250100001', 'IF103', '20251', 82.00
 
     UNION ALL
-    SELECT '2501001', 'IF101', '20252', 78.00
+    SELECT '250100001', 'IF101', '20252', 78.00
     UNION ALL
-    SELECT '2501001', 'IF104', '20252', 70.00
+    SELECT '250100001', 'IF104', '20252', 70.00
     UNION ALL
-    SELECT '2501001', 'IF105', '20252', 90.00
+    SELECT '250100001', 'IF105', '20252', 90.00
 
     UNION ALL
-    SELECT '2501002', 'IF101', '20251', 92.00
+    SELECT '250100002', 'IF101', '20251', 92.00
     UNION ALL
-    SELECT '2501002', 'IF102', '20251', 72.00
+    SELECT '250100002', 'IF102', '20251', 72.00
     UNION ALL
-    SELECT '2501002', 'IF103', '20251', 60.00
+    SELECT '250100002', 'IF103', '20251', 60.00
 
     UNION ALL
-    SELECT '2502001', 'IF101', '20251', 35.00
+    SELECT '250200001', 'IF101', '20251', 35.00
     UNION ALL
-    SELECT '2502001', 'IF102', '20251', 62.00
+    SELECT '250200001', 'IF102', '20251', 62.00
     UNION ALL
-    SELECT '2502001', 'IF106', '20251', 90.00
+    SELECT '250200001', 'IF106', '20251', 90.00
 ) AS x
 
 JOIN mahasiswa m
@@ -849,7 +849,7 @@ LEFT JOIN dosen d
 --
 --     tugas_mahasiswa
 --
--- Data dibuat untuk mahasiswa 2501001.
+-- Data dibuat untuk mahasiswa 250100001.
 -- =====================================================================
 
 INSERT IGNORE INTO tugas_mahasiswa
@@ -872,7 +872,7 @@ FROM mahasiswa m
 
 JOIN (
     SELECT
-        '2501001' AS nim,
+        '250100001' AS nim,
         'Mengerjakan laporan Basis Data' AS judul,
         'Selesaikan bagian ERD dan SQL.' AS catatan,
         '2026-11-25' AS tanggal,
@@ -881,7 +881,7 @@ JOIN (
     UNION ALL
 
     SELECT
-        '2501001',
+        '250100001',
         'Belajar Python',
         'Review function, list, dictionary, dan loop.',
         '2026-11-27',
@@ -890,7 +890,7 @@ JOIN (
     UNION ALL
 
     SELECT
-        '2501001',
+        '250100001',
         'Submit tugas pemrograman',
         'Upload project ke GitHub.',
         '2026-11-30',
