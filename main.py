@@ -1,13 +1,29 @@
+"""Entry point aplikasi Academic Management System."""
+
+import ctypes
 import tkinter as tk
 
-#1.Membuat jendela utama
-root = tk.Tk()
+from frontend import main_window
 
-#2. Mengatur judul jendela
-root.title("Academic Management System")
 
-#3. Mengatur ukuran jendela
-root.geometry("800x600")
+def aktifkan_dpi_awareness():
+    """Membuat aplikasi mengikuti DPI Windows dengan lebih tajam."""
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except (AttributeError, OSError):
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except (AttributeError, OSError):
+            pass
 
-#4.Mainloop untuk menjalankan aplikasi
-root.mainloop()
+
+def main():
+    aktifkan_dpi_awareness()
+
+    root = tk.Tk()
+    main_window.mulai(root)
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()

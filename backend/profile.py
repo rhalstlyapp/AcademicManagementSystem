@@ -1,6 +1,7 @@
 """Fitur profil pengguna SIAKAD."""
 
 from datetime import datetime
+from pathlib import Path
 
 from database import connection as db
 from utils import session
@@ -51,43 +52,37 @@ def profil_mahasiswa():
     if not mahasiswa_id:
         raise ValidationError("Profil mahasiswa tidak ditemukan.")
 
-    data = db.fetch_one(
-        """
-        SELECT
-            m.mahasiswa_id,
-            m.user_id,
-            m.nim,
-            m.nama_lengkap,
-            m.jenis_kelamin,
-            m.tempat_lahir,
-            m.tanggal_lahir,
-            m.agama,
-            m.nik,
-            m.alamat,
-            m.no_hp,
-            m.nama_ayah,
-            m.nama_ibu,
-            m.angkatan,
-            m.status_mahasiswa,
-
-            p.kode_prodi,
-            p.nama_prodi,
-            p.jenjang,
-
-            d.nama_lengkap AS nama_dosen_pa
-
-        FROM mahasiswa m
-
-        JOIN program_studi p
-            ON p.prodi_id = m.prodi_id
-
-        LEFT JOIN dosen d
-            ON d.dosen_id = m.dosen_pa_id
-
-        WHERE m.mahasiswa_id = %s
-        """,
-        (mahasiswa_id,),
-    )
+data = db.fetch_one(
+    """
+    SELECT
+        m.mahasiswa_id,
+        m.user_id,
+        u.foto_profil,
+        m.nim,
+        m.nama_lengkap,
+        m.jenis_kelamin,
+        m.tempat_lahir,
+        m.tanggal_lahir,
+        m.agama,
+        m.nik,
+        m.alamat,
+        m.no_hp,
+        m.nama_ayah,
+        m.nama_ibu,
+        m.angkatan,
+        m.status_mahasiswa,
+        p.kode_prodi,
+        p.nama_prodi,
+        p.jenjang,
+        d.nama_lengkap AS nama_dosen_pa
+    FROM mahasiswa m
+    JOIN users u ON u.user_id = m.user_id
+    JOIN program_studi p ON p.prodi_id = m.prodi_id
+    LEFT JOIN dosen d ON d.dosen_id = m.dosen_pa_id
+    WHERE m.mahasiswa_id = %s
+    """,
+    (mahasiswa_id,),
+)
 
     if data is None:
         raise ValidationError("Data mahasiswa tidak ditemukan.")
@@ -651,6 +646,160 @@ def tolak_pengajuan_nim(
             datetime.now(),
             pengajuan_id,
         ),
+    )
+
+
+
+    return True
+
+# ============================================================
+# KONFIGURASI FOTO PROFIL
+# ============================================================
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FOLDER_FOTO_PROFIL = BASE_DIR / "uploads" / "profile"
+
+EKSTENSI_FOTO_DIIJINKAN = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+}
+
+# ============================================================
+# FOTO PROFIL
+# ============================================================
+
+def _siapkan_folder_foto():
+    FOLDER_FOTO_PROFIL.mkdir(parents=True, exist_ok=True)
+
+
+def _validasi_nama_file_foto(nama_file):
+    if not nama_file:
+        raise ValidationError("File foto tidak ditemukan.")
+
+    nama = Path(str(nama_file)).name
+    ekstensi = Path(nama).suffix.lower()
+
+    if ekstensi not in EKSTENSI_FOTO_DIIJINKAN:
+        raise ValidationError(
+            "Format foto tidak didukung. Gunakan JPG, JPEG, PNG, atau WEBP."
+        )
+
+    return nama
+
+
+def ambil_foto_profil():
+    pengguna = _pengguna_login()
+
+    data = db.fetch_one(
+        """
+        SELECT foto_profil
+        FROM users
+        WHERE user_id = %s
+        """,
+        (pengguna.get("user_id"),),
+    )
+
+    if data is None:
+        raise ValidationError("Akun pengguna tidak ditemukan.")
+
+    return data["foto_profil"]
+
+
+def simpan_foto_profil(path_file):
+    pengguna = _pengguna_login()
+
+    path_asal = Path(path_file)
+
+    if not path_asal.exists() or not path_asal.is_file():
+        raise ValidationError("File foto tidak ditemukan.")
+
+    nama_asli = _validasi_nama_file_foto(path_asal.name)
+
+    _siapkan_folder_foto()
+
+    user_id = pengguna.get("user_id")
+
+    # Nama file dibuat berdasarkan user_id supaya tidak bentrok.
+    nama_file_baru = f"user_{user_id}{path_asal.suffix.lower()}"
+
+    path_tujuan = FOLDER_FOTO_PROFIL / nama_file_baru
+
+    # Hapus foto lama jika ekstensinya berbeda.
+    for ekstensi in EKSTENSI_FOTO_DIIJINKAN:
+        foto_lama = FOLDER_FOTO_PROFIL / f"user_{user_id}{ekstensi}"
+        if foto_lama.exists() and foto_lama != path_tujuan:
+            try:
+                foto_lama.unlink()
+            except OSError:
+                pass
+
+    try:
+        path_tujuan.write_bytes(path_asal.read_bytes())
+    except OSError as exc:
+        raise ValidationError(
+            "Foto gagal disimpan ke folder aplikasi."
+        ) from exc
+
+    path_db = str(
+        Path("uploads") / "profile" / nama_file_baru
+    ).replace("\\", "/")
+
+    db.execute(
+        """
+        UPDATE users
+        SET foto_profil = %s
+        WHERE user_id = %s
+        """,
+        (path_db, user_id),
+    )
+
+    return path_db
+
+
+def hapus_foto_profil():
+    pengguna = _pengguna_login()
+    user_id = pengguna.get("user_id")
+
+    data = db.fetch_one(
+        """
+        SELECT foto_profil
+        FROM users
+        WHERE user_id = %s
+        """,
+        (user_id,),
+    )
+
+    if data is None:
+        raise ValidationError("Akun pengguna tidak ditemukan.")
+
+    foto_profil = data["foto_profil"]
+
+    if foto_profil:
+        path_foto = BASE_DIR / foto_profil
+
+        # Pastikan file benar-benar berada di folder profile.
+        try:
+            path_foto.resolve().relative_to(
+                FOLDER_FOTO_PROFIL.resolve()
+            )
+        except ValueError:
+            path_foto = None
+
+        if path_foto and path_foto.exists() and path_foto.is_file():
+            try:
+                path_foto.unlink()
+            except OSError:
+                pass
+
+    db.execute(
+        """
+        UPDATE users
+        SET foto_profil = NULL
+        WHERE user_id = %s
+        """,
+        (user_id,),
     )
 
     return True

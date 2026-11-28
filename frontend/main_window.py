@@ -44,6 +44,7 @@ MENU = {
     "akademik_master": "Master Akademik",
     "dosen": "Data Dosen",
     "kelas": "Kelas Kuliah",
+    "profil": "Profil",
 }
 
 MENU_IKON = {
@@ -55,6 +56,7 @@ MENU_IKON = {
     "akademik_master": "🏫",
     "dosen": "👨‍🏫",
     "kelas": "🚪",
+    "profil": "👤",
 }
 
 HALAMAN = {
@@ -91,6 +93,11 @@ HALAMAN = {
     "transkrip": (
         "frontend.transkrip_page",
         "tampilkan_transkrip",
+        True,
+    ),
+    "profil": (
+        "frontend.profile_page",
+        "tampilkan_profile",
         True,
     ),
 }
@@ -322,7 +329,7 @@ def mulai(root):
     root.configure(bg=c.BG_COLOR)
     root.minsize(980, 620)
 
-    _tengahkan(root, 1100, 700)
+    _tengahkan(root, 1280, 800)
 
     terapkan_style(root)
     terapkan_tema(root)

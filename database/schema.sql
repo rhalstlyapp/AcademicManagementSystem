@@ -51,6 +51,10 @@ CREATE TABLE roles (
 -- Mahasiswa hasil registrasi publik dapat mempunyai:
 -- password_hash = NULL
 -- karena login mahasiswa memakai Nama + NIM.
+--
+-- foto_profil:
+-- Menyimpan path relatif file foto profil.
+-- File fisik disimpan di folder uploads/profile/.
 -- =====================================================================
 
 CREATE TABLE users (
@@ -59,6 +63,7 @@ CREATE TABLE users (
     username       VARCHAR(50) NOT NULL,
     email          VARCHAR(100) NULL,
     password_hash  VARCHAR(255) NULL,
+    foto_profil    VARCHAR(255) NULL,
     is_active      BOOLEAN NOT NULL DEFAULT TRUE,
     last_login_at  DATETIME NULL,
     created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -281,9 +286,6 @@ CREATE TABLE mahasiswa (
         REFERENCES dosen (dosen_id)
         ON UPDATE CASCADE
         ON DELETE SET NULL,
-
-    CONSTRAINT chk_mhs_nim
-        CHECK (CHAR_LENGTH(nim) >= 5),
 
     CONSTRAINT chk_mhs_nik
         CHECK (
@@ -558,7 +560,7 @@ CREATE TABLE krs (
         'Ditolak'
     ) NOT NULL DEFAULT 'Draft',
 
-    tanggal_pengajuan  DATETIME NULL,
+    tanggal_pengajuan   DATETIME NULL,
     tanggal_persetujuan DATETIME NULL,
 
     PRIMARY KEY (krs_id),
@@ -829,6 +831,7 @@ CREATE TABLE ip_semester (
         )
 ) ENGINE=InnoDB;
 
+
 -- =====================================================================
 -- 20. TUGAS MAHASISWA
 --
@@ -869,12 +872,6 @@ CREATE TABLE tugas_mahasiswa (
         ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-ALTER TABLE mahasiswa
-ADD CONSTRAINT chk_mahasiswa_nim_9_digit
-CHECK (
-    CHAR_LENGTH(nim) = 9
-    AND nim REGEXP '^[0-9]{9}$'
-);
 
 -- =====================================================================
 -- 21. PENGAJUAN PERUBAHAN NIM
